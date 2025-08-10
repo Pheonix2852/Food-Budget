@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
+export const dynamic = "force-dynamic";
+
 export default function AddUserForm() {
   const { toast } = useToast()
   const router = useRouter()
