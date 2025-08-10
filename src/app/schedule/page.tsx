@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ScheduleClient from '@/components/ScheduleClient'
 import AddExtraMealForm from '@/components/AddExtraMealForm'
+export const dynamic = "force-dynamic";
 
 type SimpleUser = { id: string; name: string }
 
 export default async function SchedulePage() {
-  export const dynamic = "force-dynamic";
   const users = (await prisma.user.findMany({
     orderBy: { createdAt: 'asc' },
     select: { id: true, name: true },

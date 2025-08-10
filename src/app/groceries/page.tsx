@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma'
 import AddGroceryForm from '@/components/AddGroceryForm'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+export const dynamic = "force-dynamic";
 
 function formatCurrency(cents: number, currency = 'INR', locale = 'en-IN') {
   return new Intl.NumberFormat(locale, { style: 'currency', currency }).format((cents || 0) / 100)
@@ -18,7 +19,6 @@ type GroceryListItem = {
 type SimpleUser = { id: string; name: string }
 
 export default async function GroceriesPage() {
-  export const dynamic = "force-dynamic";
   const items = (await prisma.grocery.findMany({
     orderBy: { date: 'desc' },
     select: {
