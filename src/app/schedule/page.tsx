@@ -7,6 +7,7 @@ import AddExtraMealForm from '@/components/AddExtraMealForm'
 type SimpleUser = { id: string; name: string }
 
 export default async function SchedulePage() {
+  export const dynamic = "force-dynamic";
   const users = (await prisma.user.findMany({
     orderBy: { createdAt: 'asc' },
     select: { id: true, name: true },

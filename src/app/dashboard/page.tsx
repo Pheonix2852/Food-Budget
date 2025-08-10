@@ -1,5 +1,6 @@
 import { getMonthStats } from '@/lib/stats'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const now = new Date()

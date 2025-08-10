@@ -18,6 +18,7 @@ type GroceryListItem = {
 type SimpleUser = { id: string; name: string }
 
 export default async function GroceriesPage() {
+  export const dynamic = "force-dynamic";
   const items = (await prisma.grocery.findMany({
     orderBy: { date: 'desc' },
     select: {
