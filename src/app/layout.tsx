@@ -4,12 +4,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Menu } from 'lucide-react'
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+import { MobileNav } from '@/components/MobileNav'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -46,10 +41,10 @@ export default function RootLayout({
             <div className="flex h-16 items-center justify-between">
               <Link
                 href="/"
-                className="flex items-center gap-2 text-2xl font-bold text-gradient"
+                className="flex items-center gap-2 font-bold text-gradient"
               >
-                <span className="text-white">🍽️</span>
-                <span className="hidden sm:inline">Food Budget</span>
+                <span className="text-white text-2xl">🍽️</span>
+                <span className="inline text-sm sm:text-xl md:text-2xl">Food Budget</span>
               </Link>
 
               {/* Desktop Navigation */}
@@ -67,33 +62,7 @@ export default function RootLayout({
               </div>
 
               {/* Mobile Navigation */}
-              <Sheet>
-                <SheetTrigger asChild className="md:hidden">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="text-white/90 hover:text-white hover-gradient"
-                  >
-                    <Menu className="h-6 w-6" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent 
-                  side="right" 
-                  className="bg-gradient-dark border-l-0"
-                >
-                  <nav className="flex flex-col gap-4 mt-8">
-                    {navigation.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className="text-lg font-medium text-white/90 hover:text-white hover-gradient rounded-md px-3 py-2 transition-all duration-200"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </nav>
-                </SheetContent>
-              </Sheet>
+              <MobileNav navigation={navigation} />
             </div>
           </div>
         </nav>
