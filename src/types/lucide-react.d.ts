@@ -11,4 +11,9 @@ declare module 'lucide-react' {
   export const ArrowRight: React.FC<LucideProps>;
   export const Menu: React.FC<LucideProps>;
   export const CheckIcon: React.FC<LucideProps>;
+  export const ChevronRight: React.FC<LucideProps>;
+  export const Circle: React.FC<LucideProps>;
+  export const ChevronDown: React.FC<LucideProps>;
+  export const ChevronUp: React.FC<LucideProps>;
+  export const X: React.FC<LucideProps>;
 }
