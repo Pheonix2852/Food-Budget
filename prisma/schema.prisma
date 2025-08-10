@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String         @id @default(cuid())
+  name      String
+  createdAt DateTime       @default(now())
+  groceries Grocery[]
+  extras    ExtraMeal[]
+  schedules MealSchedule[]
+}
+
+model Grocery {
+  id        String   @id @default(cuid())
+  item      String
+  // Store currency as cents to avoid floating point issues on SQLite
+  amount    Int
+  paid      Boolean
+  date      DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+
+  @@index([date])
+  @@index([userId])
+}
+
+model MealSchedule {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime
+  breakfast Boolean  @default(true)
+  lunch     Boolean  @default(true)
+  dinner    Boolean  @default(true)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+}
+
+model ExtraMeal {
+  id     String   @id @default(cuid())
+  user   User     @relation(fields: [userId], references: [id])
+  userId String
+  date   DateTime
+  // SQLite has no enums; store as string and validate in app code
+  type   String
+
+  @@index([userId, date])
+}
