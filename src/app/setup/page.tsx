@@ -3,9 +3,19 @@ import AddUserForm from '@/components/AddUserForm'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
-type SimpleUser = { id: string; name: string; createdAt: Date }
-
 export const dynamic = "force-dynamic";
+
+import { Button } from "@/components/ui/button"
+import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
+
+type SimpleUser = { id: string; name: string; createdAt: Date }
+async function deleteUser(userId: string) {
+  "use server";
+  await prisma.user.delete({ where: { id: userId } });
+  revalidatePath("/setup");
+  redirect("/setup");
+}
 
 export default async function SetupPage() {
   const users = (await prisma.user.findMany({
@@ -36,12 +46,17 @@ export default async function SetupPage() {
                     {u.name.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="space-y-1 text-center sm:text-left">
+                <div className="space-y-1 text-center sm:text-left flex-1">
                   <h3 className="font-medium">{u.name}</h3>
                   <p className="text-sm text-muted-foreground">
                     Joined {new Date(u.createdAt).toLocaleDateString()}
                   </p>
                 </div>
+                <form action={deleteUser.bind(null, u.id)}>
+                  <Button type="submit" variant="destructive" size="sm">
+                    Delete
+                  </Button>
+                </form>
               </div>
             </CardContent>
           </Card>
