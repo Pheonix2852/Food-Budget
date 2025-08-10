@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 type SimpleUser = { id: string; name: string; createdAt: Date }
 
+export const dynamic = "force-dynamic";
+
 export default async function SetupPage() {
   const users = (await prisma.user.findMany({
     orderBy: { createdAt: 'asc' },
