@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { getAuth } from '@clerk/nextjs/server'
+import { safeGetAuth } from '@/lib/safeGetAuth'
 import { requireUserByAuthId } from '@/lib/auth'
 
 function parseYmdUTC(ymd: string): Date | null {
@@ -45,7 +45,7 @@ export async function GET(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const a: any = getAuth({ headers: (req as any).headers } as any)
+  const a: any = safeGetAuth({ headers: (req as any).headers } as any)
   const authId = a.userId || null
   const email = (a.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a.user?.primaryEmailAddress?.emailAddress || null
   let currentUser

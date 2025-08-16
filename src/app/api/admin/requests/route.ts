@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { getAuth } from '@clerk/nextjs/server'
+import { safeGetAuth } from '@/lib/safeGetAuth'
 import { headers } from 'next/headers'
 import { requireAdminByAuthId } from '@/lib/auth'
 
@@ -8,7 +8,7 @@ export async function GET() {
   // auth
   // Note: getAuth will read clerk session from the request
   // (cast to any to satisfy types)
-  const a: any = getAuth({ headers: headers() } as any)
+  const a: any = safeGetAuth({ headers: headers() } as any)
   const authId = a?.userId || null
   const email = (a?.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a?.user?.primaryEmailAddress?.emailAddress || null
   try {
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   if (!authId || !email) return NextResponse.json({ error: 'authId and email required' }, { status: 400 })
 
   // auth
-  const a: any = getAuth({ headers: (req as any).headers } as any)
+  const a: any = safeGetAuth({ headers: (req as any).headers } as any)
   const callerAuthId = a.userId || null
   const callerEmail = (a.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a.user?.primaryEmailAddress?.emailAddress || null
   try {
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const a: any = getAuth({ headers: (req as any).headers } as any)
+  const a: any = safeGetAuth({ headers: (req as any).headers } as any)
   const callerAuthId = a.userId || null
   const callerEmail = (a.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a.user?.primaryEmailAddress?.emailAddress || null
   try {

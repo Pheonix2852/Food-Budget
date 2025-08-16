@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { getAuth } from '@clerk/nextjs/server'
+import { safeGetAuth } from '@/lib/safeGetAuth'
 import { headers } from 'next/headers'
 import { requireAdminByAuthId } from '@/lib/auth'
 import { parseYmdUTC } from '@/lib/date'
 
 // GET -> list disabled meals for a date-range or month
 export async function GET(req: Request) {
-  const a: any = getAuth({ headers: headers() } as any)
+  const a: any = safeGetAuth({ headers: headers() } as any)
   const authId = a?.userId || null
   const email = (a?.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a?.user?.primaryEmailAddress?.emailAddress || null
   try {
@@ -35,7 +35,7 @@ export async function GET(req: Request) {
 
 // POST -> create disabled meal record { date: 'YYYY-MM-DD', type: 'BREAKFAST'|'LUNCH'|'DINNER', reason?: string }
 export async function POST(req: Request) {
-  const a: any = getAuth({ headers: (req as any).headers } as any)
+  const a: any = safeGetAuth({ headers: (req as any).headers } as any)
   const authId = a?.userId || null
   const email = (a?.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a?.user?.primaryEmailAddress?.emailAddress || null
   try {
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
 // DELETE -> remove a disabled entry by id (admin only)
 export async function DELETE(req: Request) {
-  const a: any = getAuth({ headers: (req as any).headers } as any)
+  const a: any = safeGetAuth({ headers: (req as any).headers } as any)
   const authId = a?.userId || null
   const email = (a?.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a?.user?.primaryEmailAddress?.emailAddress || null
   try {

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { safeGetAuth } from '@/lib/safeGetAuth'
 import { headers } from 'next/headers'
 import { requireAdminByAuthId } from '@/lib/auth'
 
 export async function GET(req: Request) {
-  const a: any = getAuth({ headers: headers() } as any)
+  const a: any = safeGetAuth({ headers: headers() } as any)
   const authId = a?.userId || null
   const email = (a?.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a?.user?.primaryEmailAddress?.emailAddress || null
   try {
