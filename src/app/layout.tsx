@@ -90,7 +90,6 @@ export default function RootLayout({
 
           <main className="max-w-screen-xl mx-auto px-4 py-8">
             <DateRefreshClient />
-            {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? <RegisterAfterSignIn /> : null}
             <RequireAuth />
             {children}
           </main>
