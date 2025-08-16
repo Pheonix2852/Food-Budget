@@ -5,14 +5,25 @@ export function getMonthDays(date = new Date()){
   const end = new Date(Date.UTC(year, month0 + 1, 0));
   const days: string[] = [];
   for(let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate()+1)){
-    days.push(d.toISOString().slice(0,10));
+    days.push(d.toLocaleDateString('en-CA'));
   }
   return { year, month0, days };
 }
 export function todayISO(){
   const now = new Date();
-  const t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  return t.toISOString().slice(0,10);
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+// Local YYYY-MM-DD (useful for input type=date defaults)
+export function todayLocalYmd(){
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
 }
 export function toYmdUTC(d: Date) {
   const yyyy = d.getUTCFullYear()
@@ -31,4 +42,8 @@ export function isTodayOrFutureUTC(date: Date) {
   const now = new Date()
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
   return date.getTime() >= today.getTime()
+}
+
+export function isFirstDayOfMonth(date = new Date()) {
+  return date.getUTCDate() === 1
 }

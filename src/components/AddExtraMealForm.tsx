@@ -8,18 +8,18 @@ import { Button } from '@/components/ui/button'
 type UserOption = { id: string; name: string }
 type MealKind = 'BREAKFAST' | 'LUNCH' | 'DINNER'
 
-function todayYmdUTC() {
+function todayLocalYmd() {
   const now = new Date()
-  const yyyy = now.getUTCFullYear()
-  const mm = String(now.getUTCMonth() + 1).padStart(2, '0')
-  const dd = String(now.getUTCDate()).padStart(2, '0')
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd}`
 }
 
 export default function AddExtraMealForm({ users }: { users: UserOption[] }) {
   const router = useRouter()
   const [userId, setUserId] = useState(users[0]?.id || '')
-  const [date, setDate] = useState(todayYmdUTC())
+  const [date, setDate] = useState(todayLocalYmd())
   const [type, setType] = useState<MealKind>('BREAKFAST')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,6 +42,7 @@ export default function AddExtraMealForm({ users }: { users: UserOption[] }) {
         throw new Error(data.error || 'Failed to add extra meal')
       }
       router.refresh()
+  try { window.dispatchEvent(new Event('sfb:stats-updated')) } catch {}
     } catch (err: any) {
       setError(err.message || 'Failed to add extra meal')
     } finally {
@@ -74,7 +75,7 @@ export default function AddExtraMealForm({ users }: { users: UserOption[] }) {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          min={todayYmdUTC()}
+          min={todayLocalYmd()}
         />
 
         <Select value={type} onValueChange={(value) => setType(value as MealKind)}>
@@ -86,19 +87,19 @@ export default function AddExtraMealForm({ users }: { users: UserOption[] }) {
               value="BREAKFAST"
               className="text-foreground hover:bg-accent focus:bg-accent"
             >
-              🍳 Breakfast (+1)
+              🍳 Breakfast (−1)
             </SelectItem>
             <SelectItem
               value="LUNCH"
               className="text-foreground hover:bg-accent focus:bg-accent"
             >
-              🥪 Lunch (+2)
+              🥪 Lunch (−2)
             </SelectItem>
             <SelectItem
               value="DINNER"
               className="text-foreground hover:bg-accent focus:bg-accent"
             >
-              🍲 Dinner (+2)
+              🍲 Dinner (−2)
             </SelectItem>
           </SelectContent>
         </Select>

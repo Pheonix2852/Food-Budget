@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { getAuth } from '@clerk/nextjs/server'
+import { requireUserByAuthId } from '@/lib/auth'
 
 function parseYmdUTC(ymd: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd)
@@ -43,6 +45,15 @@ export async function GET(req: Request) {
 }
 
 export async function PUT(req: Request) {
+  const a: any = getAuth({ headers: (req as any).headers } as any)
+  const authId = a.userId || null
+  const email = (a.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a.user?.primaryEmailAddress?.emailAddress || null
+  let currentUser
+  try {
+    currentUser = await requireUserByAuthId(authId, email)
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Unauthorized' }, { status: 401 })
+  }
   let body: any
   try {
     body = await req.json()
@@ -65,8 +76,12 @@ export async function PUT(req: Request) {
   }
 
   // Ensure user exists
-  const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+  const userExists = await prisma.user.findFirst({ where: { id: userId }, select: { id: true } })
   if (!userExists) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+  if (currentUser.role !== 'ADMIN') {
+    if (userId !== currentUser.id) return NextResponse.json({ error: 'Cannot modify schedule for other users' }, { status: 403 })
+  }
 
   const updated = await prisma.mealSchedule.upsert({
     where: { userId_date: { userId, date } },

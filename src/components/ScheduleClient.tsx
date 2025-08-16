@@ -10,34 +10,34 @@ type UserOption = { id: string; name: string }
 type Schedule = { breakfast: boolean; lunch: boolean; dinner: boolean }
 type MealKind = 'BREAKFAST' | 'LUNCH' | 'DINNER'
 
-function todayYmdUTC() {
+function todayLocalYmd() {
   const now = new Date()
-  const yyyy = now.getUTCFullYear()
-  const mm = String(now.getUTCMonth() + 1).padStart(2, '0')
-  const dd = String(now.getUTCDate()).padStart(2, '0')
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd}`
 }
-function tomorrowYmdUTC() {
-  const now = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()))
-  now.setUTCDate(now.getUTCDate() + 1)
-  const yyyy = now.getUTCFullYear()
-  const mm = String(now.getUTCMonth() + 1).padStart(2, '0')
-  const dd = String(now.getUTCDate()).padStart(2, '0')
+function tomorrowLocalYmd() {
+  const now = new Date()
+  now.setDate(now.getDate() + 1)
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd}`
 }
 function isFutureYmd(ymd: string) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd)
   if (!m) return false
-  const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
   const now = new Date()
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   return dt.getTime() > today.getTime()
 }
 
 export default function ScheduleClient({ users }: { users: UserOption[] }) {
   const router = useRouter()
   const [userId, setUserId] = useState(users[0]?.id || '')
-  const [date, setDate] = useState(tomorrowYmdUTC()) // default: tomorrow (future-only rule)
+  const [date, setDate] = useState(tomorrowLocalYmd()) // default: tomorrow (future-only rule)
   const [sched, setSched] = useState<Schedule | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -90,6 +90,7 @@ export default function ScheduleClient({ users }: { users: UserOption[] }) {
         throw new Error(data.error || 'Failed to save')
       }
       router.refresh()
+  try { window.dispatchEvent(new Event('sfb:stats-updated')) } catch {}
     } catch (e: any) {
       setError(e.message || 'Failed to save')
     } finally {
@@ -126,7 +127,7 @@ export default function ScheduleClient({ users }: { users: UserOption[] }) {
           className="border border-foreground bg-background text-foreground rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full [color-scheme:dark]"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          min={todayYmdUTC()}
+          min={todayLocalYmd()}
         />
       </div>
 

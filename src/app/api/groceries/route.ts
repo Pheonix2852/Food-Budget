@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { getAuth } from '@clerk/nextjs/server'
+import { requireUserByAuthId } from '@/lib/auth'
 
 export async function GET() {
   const items = await prisma.grocery.findMany({
@@ -17,6 +19,15 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const a: any = getAuth({ headers: (req as any).headers } as any)
+  const authId = a.userId || null
+  const email = (a.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a.user?.primaryEmailAddress?.emailAddress || null
+  let currentUser
+  try {
+    currentUser = await requireUserByAuthId(authId, email)
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Unauthorized' }, { status: 401 })
+  }
   let body: any
   try {
     body = await req.json()
@@ -41,8 +52,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Select the payer when Paid is on' }, { status: 400 })
 
   if (paid && userId) {
-    const exists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+    const exists = await prisma.user.findFirst({ where: { id: userId }, select: { id: true } })
     if (!exists) return NextResponse.json({ error: 'Payer not found' }, { status: 400 })
+  }
+
+  // Enforce that normal users can only create groceries for themselves
+  if (currentUser.role !== 'ADMIN') {
+    if (!userId || userId !== currentUser.id) return NextResponse.json({ error: 'Cannot create grocery for other users' }, { status: 403 })
   }
 
   const created = await prisma.grocery.create({

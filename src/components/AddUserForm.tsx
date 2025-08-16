@@ -39,6 +39,7 @@ export default function AddUserForm() {
 
       setName("")
       router.refresh()
+  try { window.dispatchEvent(new Event('sfb:stats-updated')) } catch {}
 
     } catch (err: any) {
       toast({

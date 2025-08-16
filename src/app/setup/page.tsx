@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma'
-import AddUserForm from '@/components/AddUserForm'
+// AddUserForm removed: users are added via Clerk sign-in + admin approval
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
@@ -8,13 +8,40 @@ export const dynamic = "force-dynamic";
 import { Button } from "@/components/ui/button"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { safeGetAuth } from '@/lib/safeGetAuth'
+import { headers } from 'next/headers'
 
 type SimpleUser = { id: string; name: string; createdAt: Date }
 async function deleteUser(userId: string) {
   "use server";
+  // Use Next's headers() to provide a proper headers object to Clerk
+  const a: any = safeGetAuth({ headers: headers() } as any)
+  const authId = a.userId || null
+  // require admin on server before deleting
+  if (!authId) throw new Error('Unauthorized')
+  const user = await prisma.user.findFirst({ where: { authId } })
+  if (!user || (user as any).role !== 'ADMIN') throw new Error('Forbidden')
+
   await prisma.user.delete({ where: { id: userId } });
   revalidatePath("/setup");
   redirect("/setup");
+}
+
+// Server component wrapper to show Delete button only to admins.
+async function ServerDeleteButton({ userId }: { userId: string }) {
+  const a: any = safeGetAuth({ headers: headers() } as any)
+  const authId = a.userId || null
+  if (!authId) return null
+  const caller = await prisma.user.findFirst({ where: { authId } })
+  if (!caller || (caller as any).role !== 'ADMIN') return null
+
+  return (
+    <form action={deleteUser.bind(null, userId)}>
+      <Button type="submit" variant="destructive" size="sm">
+        Delete
+      </Button>
+    </form>
+  )
 }
 
 export default async function SetupPage() {
@@ -27,14 +54,13 @@ export default async function SetupPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight text-center">Setup</h1>
 
-      <Card className="gradient-card">
-        <CardHeader>
-          <CardTitle>Add User</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AddUserForm />
-        </CardContent>
-      </Card>
+      <div className="max-w-3xl mx-auto">
+        <div className="rounded-md bg-yellow-50 p-4 mb-4 border border-yellow-200">
+          <p className="text-sm text-yellow-800 text-center">
+            Users are created by signing in via the sign-in page. New accounts remain in "pending" until an admin approves them from the Admin Requests page.
+          </p>
+        </div>
+      </div>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {users.map((u) => (
@@ -52,11 +78,8 @@ export default async function SetupPage() {
                     Joined {new Date(u.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <form action={deleteUser.bind(null, u.id)}>
-                  <Button type="submit" variant="destructive" size="sm">
-                    Delete
-                  </Button>
-                </form>
+                {/* Delete button visible only to admins */}
+                <ServerDeleteButton userId={u.id} />
               </div>
             </CardContent>
           </Card>

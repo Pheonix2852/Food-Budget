@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { getAuth } from '@clerk/nextjs/server'
+import { requireUserByAuthId } from '@/lib/auth'
 
 type MealKind = 'BREAKFAST' | 'LUNCH' | 'DINNER'
 const isMealKind = (v: string): v is MealKind => v === 'BREAKFAST' || v === 'LUNCH' || v === 'DINNER'
@@ -18,6 +20,16 @@ function isTodayOrFutureUTC(date: Date) {
 }
 
 export async function POST(req: Request) {
+  const a: any = getAuth({ headers: (req as any).headers } as any)
+  const authId = a.userId || null
+  const email = (a.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a.user?.primaryEmailAddress?.emailAddress || null
+  let currentUser
+  try {
+    currentUser = await requireUserByAuthId(authId, email)
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Unauthorized' }, { status: 401 })
+  }
+
   let body: any
   try {
     body = await req.json()
@@ -39,9 +51,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Extras allowed for today or future only' }, { status: 400 })
   }
 
-  const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+  const userExists = await prisma.user.findFirst({ where: { id: userId }, select: { id: true } })
   if (!userExists) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-
+  if (currentUser.role !== 'ADMIN') {
+    if (userId !== currentUser.id) return NextResponse.json({ error: 'Cannot add extra meal for other users' }, { status: 403 })
+  }
   const created = await prisma.extraMeal.create({
     data: { userId, date, type },
     select: { id: true, userId: true, date: true, type: true },

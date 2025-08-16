@@ -1,0 +1,9 @@
+{
+  "type": "user.created",
+  "data": {
+    "id": "auth_2025arcade1",
+    "email_addresses": [{ "email_address": "2025arcade1@gmail.com" }],
+    "first_name": "Admin",
+    "full_name": "Admin User"
+  }
+}

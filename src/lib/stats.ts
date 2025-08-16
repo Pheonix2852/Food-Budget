@@ -1,9 +1,9 @@
 import prisma from '@/lib/prisma'
 
 export type MealKind = 'BREAKFAST' | 'LUNCH' | 'DINNER'
+export type DisabledType = MealKind | 'FULL_DAY'
 
-export const isMealKind = (v: string): v is MealKind =>
-  v === 'BREAKFAST' || v === 'LUNCH' || v === 'DINNER'
+export const isMealKind = (v: string): v is MealKind => v === 'BREAKFAST' || v === 'LUNCH' || v === 'DINNER'
 
 export interface User {
   id: string
@@ -12,7 +12,6 @@ export interface User {
 }
 
 export interface Grocery {
-  id: string
   item: string
   amount: number // cents
   paid: boolean
@@ -34,6 +33,12 @@ export interface ExtraMeal {
   userId: string
   date: Date
   type: MealKind
+}
+
+export interface DisabledMealEntry {
+  id: string
+  date: Date
+  type: DisabledType
 }
 
 export interface UserMonthlyBreakdown {
@@ -66,12 +71,10 @@ const ymd = (d: Date) => {
   ).padStart(2, '0')}`
 }
 
-const monthKeyOf = (d: Date) =>
-  `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+const monthKeyOf = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
 
 const startOfMonthUTC = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1))
-const endOfMonthUTC = (d: Date) =>
-  new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0, 23, 59, 59, 999))
+const endOfMonthUTC = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0, 23, 59, 59, 999))
 
 const clampDateToMonth = (date: Date, month: Date) => {
   const start = startOfMonthUTC(month)
@@ -88,6 +91,13 @@ const daysInRangeUTC = (start: Date, end: Date): string[] => {
     d.setUTCDate(d.getUTCDate() + 1)
   }
   return result
+}
+
+function parseYmd(ymdStr: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymdStr)
+  if (!m) return new Date(0)
+  const [, y, mo, d] = m
+  return new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d)))
 }
 
 function roundToCents(n: number) {
@@ -110,6 +120,8 @@ export function computeMonthlyStats(params: {
   groceries: Grocery[]
   schedules: MealSchedule[]
   extras: ExtraMeal[]
+  disabled?: DisabledMealEntry[]
+  batches?: { userId: string; startDate: Date; endDate: Date }[]
   now?: Date
   month?: Date
 }): MonthlyStats {
@@ -117,13 +129,16 @@ export function computeMonthlyStats(params: {
   const month = params.month ?? now
   const monthKey = monthKeyOf(month)
 
+  
+
   const groceriesInMonth = params.groceries.filter((g) => monthKeyOf(g.date) === monthKey)
   const schedulesInMonth = params.schedules.filter((s) => monthKeyOf(s.date) === monthKey)
   const extrasInMonth = params.extras.filter((e) => monthKeyOf(e.date) === monthKey)
+  const disabledInMonth = (params.disabled || []).filter((d) => monthKeyOf(d.date) === monthKey)
 
-  const todayInMonth = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  )
+  
+
+  const todayInMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
   const lastCountDay = clampDateToMonth(todayInMonth, month)
 
   const scheduleByUserDate = new Map<string, MealSchedule>()
@@ -152,16 +167,36 @@ export function computeMonthlyStats(params: {
     let points = 0
 
     for (const dayKey of dayKeys) {
+      // skip days covered by a batch meal for this user
+      const dayDate = parseYmd(dayKey)
+      const hasBatch = (params.batches || []).some((b) => b.userId === u.id && dayDate >= b.startDate && dayDate <= b.endDate)
+      if (hasBatch) continue
       const schedule = scheduleByUserDate.get(`${u.id}|${dayKey}`)
-      points += pointsFromScheduleEntry(schedule)
+      // When a scheduled meal falls on a disabled meal entry, skip those meal points
+      const disabledForDate = disabledInMonth.filter((d) => ymd(d.date) === dayKey).map((d) => d.type)
+      // Start with default scheduled meals = all true (user opted-in), then overlay any saved schedule
+      const entry = {
+        breakfast: true,
+        lunch: true,
+        dinner: true,
+      }
+      if (schedule) {
+        entry.breakfast = !!schedule.breakfast
+        entry.lunch = !!schedule.lunch
+        entry.dinner = !!schedule.dinner
+      }
+      if (disabledForDate.includes('FULL_DAY') || disabledForDate.includes('BREAKFAST')) entry.breakfast = false
+      if (disabledForDate.includes('FULL_DAY') || disabledForDate.includes('LUNCH')) entry.lunch = false
+      if (disabledForDate.includes('FULL_DAY') || disabledForDate.includes('DINNER')) entry.dinner = false
+      points += pointsFromScheduleEntry(entry)
     }
 
-    const userExtras = extrasInMonth.filter(
-      (e) => e.userId === u.id && e.date.getTime() <= lastCountDay.getTime(),
-    )
+    const userExtras = extrasInMonth.filter((e) => e.userId === u.id && e.date.getTime() <= lastCountDay.getTime())
     for (const ex of userExtras) {
       if (isMealKind(ex.type)) {
-        points += MEAL_POINTS[ex.type]
+        // skip extra meal points if that meal was disabled on that date (or full day disabled)
+        const disabled = disabledInMonth.some((d) => ymd(d.date) === ymd(ex.date) && (d.type === ex.type || d.type === 'FULL_DAY'))
+        if (!disabled) points += MEAL_POINTS[ex.type]
       }
     }
 
@@ -200,8 +235,7 @@ export async function getMonthStats(year: number, monthZeroBased: number) {
   const monthDate = new Date(Date.UTC(year, monthZeroBased, 1))
   const start = startOfMonthUTC(monthDate)
   const end = endOfMonthUTC(monthDate)
-
-  const [users, groceries, schedules, extras] = await Promise.all([
+  const [users, groceries, schedules, extras, disabledRows, batchesRaw] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: 'asc' },
       select: { id: true, name: true, createdAt: true },
@@ -218,7 +252,11 @@ export async function getMonthStats(year: number, monthZeroBased: number) {
       where: { date: { gte: start, lte: end } },
       select: { id: true, userId: true, date: true, type: true },
     }),
+    prisma.disabledMeal.findMany({ where: { date: { gte: start, lte: end } }, select: { id: true, date: true, type: true } }),
+    // Use raw query to fetch BatchMeal entries (avoid needing regenerated Prisma client types here)
+    prisma.$queryRaw`SELECT id, "userId", "startDate", "endDate" FROM "BatchMeal" WHERE "startDate" <= ${end} AND "endDate" >= ${start}`,
   ])
+  
 
   // Cast extras.type to MealKind where valid
   interface PrismaExtraMeal {
@@ -228,19 +266,39 @@ export async function getMonthStats(year: number, monthZeroBased: number) {
     type: string
   }
 
-  const extrasCast: ExtraMeal[] = extras
+  const extrasCast: ExtraMeal[] = (extras as any[])
     .map((e: PrismaExtraMeal): ExtraMeal => ({
       ...e,
       type: isMealKind(e.type) ? e.type : ('BREAKFAST' as MealKind),
     }))
+
+  // Map typed Prisma rows to DisabledMealEntry
+  const disabledCast: DisabledMealEntry[] = (Array.isArray(disabledRows) ? disabledRows : []).map((d: any) => ({
+    id: d.id,
+    date: new Date(d.date),
+    type: d.type === 'FULL_DAY' ? 'FULL_DAY' : (isMealKind(d.type) ? d.type : ('BREAKFAST' as MealKind)),
+  }))
+
+  
+
+  // Convert raw batch rows to typed batch objects
+  const batchesArr: any[] = Array.isArray(batchesRaw) ? batchesRaw : (batchesRaw ? [batchesRaw] : [])
+  const batches = (batchesArr || []).map((b: any) => ({
+    userId: b.userId,
+    startDate: new Date(b.startDate),
+    endDate: new Date(b.endDate),
+  }))
 
   const stats = computeMonthlyStats({
     users: users as User[],
     groceries: groceries as Grocery[],
     schedules: schedules as MealSchedule[],
     extras: extrasCast,
+    disabled: disabledCast,
+    batches,
     month: monthDate,
   })
+  
 
   // Convert cents to currency units for UI
   return {

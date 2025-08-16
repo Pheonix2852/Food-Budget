@@ -18,7 +18,7 @@ export default function AddGroceryForm({ users }: { users: UserOption[] }) {
   const [userId, setUserId] = useState<string>(users[0]?.id || '')
   const [date, setDate] = useState<string>(() => {
     const d = new Date()
-    return d.toISOString().split('T')[0]
+  return d.toLocaleDateString('en-CA')
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,6 +48,7 @@ export default function AddGroceryForm({ users }: { users: UserOption[] }) {
       setItem('')
       setAmount('')
       router.refresh()
+  try { window.dispatchEvent(new Event('sfb:stats-updated')) } catch {}
     } catch (err: any) {
       setError(err.message || 'Failed to add grocery')
     } finally {
