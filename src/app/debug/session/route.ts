@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { safeGetAuth } from '@/lib/safeGetAuth'
 
 export async function GET(req: Request) {
-  const a: any = getAuth({ headers: (req as any).headers } as any)
+  const a: any = safeGetAuth({ headers: (req as any).headers } as any)
   return NextResponse.json({ userId: a.userId, user: a.user || null })
 }

@@ -2,7 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { parseYmdUTC } from '@/lib/date'
-import { getAuth } from '@clerk/nextjs/server'
+import { safeGetAuth } from '@/lib/safeGetAuth'
 import { requireUserByAuthId } from '@/lib/auth'
 
 export async function POST(request: Request) {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 })
     }
 
-  const a: any = getAuth({ headers: (request as any).headers } as any)
+  const a: any = safeGetAuth({ headers: (request as any).headers } as any)
   const authId = a?.userId || null
   const email = (a?.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a?.user?.primaryEmailAddress?.emailAddress || null
     let currentUser
@@ -51,7 +51,7 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url)
     const id = url.searchParams.get('id')
     if (!id) return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400 })
-  const a: any = getAuth({ headers: (request as any).headers } as any)
+  const a: any = safeGetAuth({ headers: (request as any).headers } as any)
   const authId = a?.userId || null
   const email = (a?.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a?.user?.primaryEmailAddress?.emailAddress || null
     let currentUser

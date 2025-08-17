@@ -7,7 +7,7 @@ import BatchMealForm from '@/components/BatchMealForm'
 import BatchMealList from '@/components/BatchMealList'
 import AdminDisabledWrapper from '@/components/AdminDisabledWrapper'
 import { getMonthDays } from '@/lib/date'
-import { getAuth } from '@clerk/nextjs/server'
+import { safeGetAuth } from '@/lib/safeGetAuth'
 import { headers } from 'next/headers'
 import { requireAdminByAuthId } from '@/lib/auth'
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export default async function SchedulePage() {
   // Server-side: check if current request is from an admin so we can render the tab trigger conditionally
   let isAdmin = false
   try {
-  const a: any = getAuth({ headers: headers() } as any)
+    const a: any = safeGetAuth({ headers: headers() } as any)
     const authId = a?.userId || null
     const email = (a?.user?.emailAddresses && a.user.emailAddresses[0]?.emailAddress) || a?.user?.primaryEmailAddress?.emailAddress || null
     await requireAdminByAuthId(authId, email)

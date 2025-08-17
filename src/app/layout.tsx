@@ -14,6 +14,7 @@ import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/nextjs'
 const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
+  preload: false,
   variable: '--font-poppins',
 })
 
